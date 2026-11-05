@@ -1,0 +1,1031 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Popcorn Club</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Limelight&family=Figtree:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout : façade de cinéma de quartier, enseigne à ampoules, mur d'affiches en grille, fiches en rideau de velours */
+:root {
+  --bg: #1b110d;
+  --bg-2: #24170f;
+  --surface: #2e1d15;
+  --velvet: #5c1b27;
+  --velvet-2: #7a2433;
+  --amber: #f2a83a;
+  --amber-soft: #f6c877;
+  --cream: #f4e7d0;
+  --muted: #b89d86;
+  --line: #4a3022;
+  --ok: #8fc48a;
+  --display: "Limelight", "Playfair Display", Georgia, serif;
+  --body: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --mono: "DM Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; } [hidden] { display: none !important; } img { max-width: 100%; }
+.poster > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+.tmdb-search { display: grid; gap: 10px; }
+.results { display: grid; gap: 6px; max-height: 46vh; overflow-y: auto; }
+.result { display: grid; grid-template-columns: 46px minmax(0,1fr); gap: 12px; align-items: center; text-align: left; padding: 6px; border-radius: 12px; border: 1px solid transparent; background: rgba(0,0,0,.2); }
+.result:hover, .result:focus-visible { border-color: rgba(232,194,122,.5); background: rgba(122,36,51,.35); }
+.result img, .result .noimg { width: 46px; aspect-ratio: 2/3; object-fit: cover; border-radius: 6px; background: var(--velvet); }
+.result b { display: block; font-size: 15px; }
+.result small { color: var(--muted); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.result[disabled] { opacity: .5; cursor: default; }
+.res-msg { color: var(--muted); font-size: 14px; margin: 0; }
+.manual summary { cursor: pointer; color: #e8c27a; font-size: 14px; font-weight: 600; }
+.manual-body { display: grid; gap: 14px; margin-top: 14px; }
+html { background: var(--bg); }
+body {
+  background:
+    radial-gradient(1200px 500px at 50% -120px, rgba(122,36,51,.55), transparent 70%),
+    var(--bg);
+  color: var(--cream);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg);
+}
+.wrap {
+  max-width: 1180px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+/* Bandeau maquette */
+.demo-note {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--muted); text-align: center; padding-block: 8px;
+  border-bottom: 1px dashed var(--line);
+}
+.demo-note b { color: var(--amber-soft); font-weight: 500; }
+
+/* Enseigne */
+header.marquee { padding-block: 36px 20px; display: grid; justify-items: center; gap: 14px; text-align: center; }
+/* Enseigne de façade : cadre doré, ampoules qui courent tout autour, éventail art déco */
+.sign {
+  position: relative; max-width: 100%;
+  padding: 6px; border-radius: 22px;
+  background: linear-gradient(160deg, #e9c27a, #8a5a22 40%, #f2d08f 60%, #6e4317);
+  box-shadow: 0 24px 60px rgba(0,0,0,.6), 0 0 80px rgba(242,168,58,.18);
+}
+.sign-inner {
+  position: relative; overflow: hidden; border-radius: 17px;
+  padding: 34px clamp(30px, 6vw, 58px) 26px;
+  background:
+    repeating-conic-gradient(from -90deg at 50% 118%, rgba(246,200,119,.10) 0 5deg, transparent 5deg 10deg),
+    radial-gradient(120% 90% at 50% 110%, #8c2a3a, #4a121c 70%);
+  box-shadow: inset 0 0 0 2px #2a0a10, inset 0 0 30px rgba(0,0,0,.55);
+  display: grid; justify-items: center; gap: 10px;
+}
+.bulbs { position: absolute; inset: 0; pointer-events: none; }
+.bulb {
+  position: absolute; width: 9px; height: 9px; border-radius: 50%; transform: translate(-50%, -50%);
+  background: radial-gradient(circle at 35% 35%, #fffaf0, #f6c877 45%, #b8701d);
+  box-shadow: 0 0 6px 2px rgba(246,200,119,.75), 0 0 14px rgba(242,168,58,.5);
+  animation: chase 1.5s linear infinite;
+}
+@keyframes chase { 0%, 33% { opacity: 1; } 34%, 100% { opacity: .28; box-shadow: none; } }
+.sign h1 {
+  position: relative; margin: 0; font-family: var(--display); font-weight: 400;
+  font-size: clamp(38px, 9vw, 80px); line-height: 1; letter-spacing: .03em;
+  display: flex; align-items: center; gap: .22em;
+}
+.sign h1 .word {
+  background: linear-gradient(180deg, #fff6df 10%, #f6c877 50%, #d4882a 85%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 3px 0 #2a0a10) drop-shadow(0 0 16px rgba(246,200,119,.45));
+  white-space: nowrap;
+}
+.sign h1 svg { width: .62em; height: .62em; flex: none; filter: drop-shadow(0 3px 4px rgba(0,0,0,.4)); }
+.sign h1 .c-left svg { transform: rotate(-12deg); }
+.sign h1 .c-right svg { transform: rotate(12deg); }
+.deco { display: flex; align-items: center; gap: 12px; width: 70%; color: var(--amber-soft); font-size: 12px; letter-spacing: .4em; }
+.deco::before, .deco::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--amber-soft), transparent); }
+@media (max-width: 480px) { .sign h1 svg { display: none; } }
+.tagline { margin: 0; color: var(--muted); font-size: 17px; }
+/* Petit écran de cinéma vintage */
+.cinema { width: min(380px, 100%); display: grid; justify-items: center; margin-top: 6px; }
+.cinema-frame {
+  position: relative; width: 100%; padding: 22px 30px 12px;
+  border-radius: 16px 16px 8px 8px;
+  background:
+    linear-gradient(160deg, #e9c27a, #8a5a22 40%, #f2d08f 60%, #6e4317) border-box;
+  border: 5px solid transparent;
+  box-shadow: 0 14px 34px rgba(0,0,0,.55), 0 0 40px rgba(242,168,58,.12);
+  overflow: hidden;
+  background-clip: border-box;
+}
+.cinema-frame > .inner-bg { position: absolute; inset: 0; border-radius: 11px 11px 4px 4px; z-index: 0;
+  background: radial-gradient(120% 90% at 50% 110%, #8c2a3a, #4a121c 70%); box-shadow: inset 0 0 0 2px #2a0a10, inset 0 0 20px rgba(0,0,0,.55); }
+.cinema-frame::before, .cinema-frame::after {
+  content: ""; position: absolute; top: 16px; bottom: 4px; width: 32px; z-index: 2;
+  background: repeating-linear-gradient(90deg, #8c2a3a 0 4px, #5c1b27 4px 7px, #3a0f17 7px 9px);
+  box-shadow: 0 0 10px rgba(0,0,0,.6);
+}
+.mini-bulbs { position: absolute; top: 5px; left: 0; right: 0; z-index: 4; display: flex; justify-content: space-evenly; padding-inline: 22px; }
+.mini-bulbs .bulb { position: relative; width: 6px; height: 6px; transform: none; }
+.cinema-frame::before { left: 4px; border-radius: 0 40% 20% 0 / 0 70% 30% 0; }
+.cinema-frame::after { right: 4px; border-radius: 40% 0 0 20% / 70% 0 0 30%; }
+.valance {
+  position: absolute; inset: 14px 0 auto; height: 11px; z-index: 3;
+  background: radial-gradient(circle at 50% 0, #8c2a3a 0 6px, transparent 6.5px) 0 0 / 14px 11px repeat-x;
+  border-top: 1px solid rgba(232,194,122,.5);
+}
+.screen {
+  position: relative; z-index: 1; margin-top: 4px; border-radius: 6px / 12px; width: min(330px, 100%); gap: 8px;
+  background: radial-gradient(ellipse at 50% 40%, #fff6df 0%, #f6dca8 55%, #c99a52 100%);
+  box-shadow: inset 0 0 16px rgba(74,18,28,.45), 0 0 18px rgba(246,200,119,.25);
+  display: flex; justify-content: space-around; padding: 12px 10px 10px;
+  color: #4a121c; font-variant-numeric: tabular-nums;
+  animation: flicker 5s infinite;
+}
+.screen::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: .35; mix-blend-mode: multiply;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,.07) 0 1px, transparent 1px 3px), linear-gradient(90deg, transparent 31%, rgba(60,30,10,.25) 31.3%, transparent 31.6%);
+}
+.stat { display: grid; justify-items: center; line-height: 1; gap: 4px; min-width: 0; }
+.stat b { font-family: var(--display); font-weight: 400; font-size: 26px; text-shadow: 0 1px 0 rgba(255,255,255,.4); }
+.stat span { font-family: var(--mono); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: #7a2433; }
+.cinema-feet { display: flex; justify-content: space-between; width: 70%; }
+.cinema-feet i { width: 6px; height: 10px; background: linear-gradient(#c99a52, #6e4317); border-radius: 0 0 3px 3px; }
+@keyframes flicker { 0%, 92%, 100% { filter: brightness(1); } 93% { filter: brightness(.86); } 94% { filter: brightness(1.04); } 96% { filter: brightness(.93); } }
+
+/* Barre d'outils */
+.toolbar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: rgba(40,14,19,.94); backdrop-filter: blur(10px);
+}
+.toolbar::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(232,194,122,.7) 30%, rgba(232,194,122,.7) 70%, transparent);
+}
+.toolbar .wrap { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding-block: 14px; }
+
+/* Velours et doré, épuré */
+.seg { display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: rgba(0,0,0,.25); border: 1px solid rgba(232,194,122,.28); }
+.seg button {
+  border: 1px solid transparent; background: transparent; padding: 7px 18px; border-radius: 999px;
+  font-weight: 500; font-size: 14px; letter-spacing: .02em; color: var(--muted); transition: color .2s, background .2s, border-color .2s;
+}
+.seg button:hover { color: var(--cream); }
+.seg button[aria-pressed="true"] { background: var(--velvet-2); color: #f6dca8; border-color: rgba(232,194,122,.55); box-shadow: 0 2px 10px rgba(0,0,0,.3); }
+
+.field {
+  background: rgba(0,0,0,.25); border: 1px solid rgba(232,194,122,.28); border-radius: 999px; padding: 8px 16px; font-size: 14px; min-width: 0;
+  transition: border-color .2s, background .2s;
+}
+textarea.field { border-radius: 14px; }
+.field:hover { border-color: rgba(232,194,122,.5); }
+.field:focus { outline: none; border-color: #e8c27a; background: rgba(0,0,0,.35); }
+.field::placeholder { color: #8b7463; }
+.search { flex: 1 1 220px; position: relative; display: flex; min-width: 0; }
+.search input { width: 100%; padding-left: 38px; }
+.search svg { position: absolute; left: 14px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); color: #e8c27a; opacity: .8; pointer-events: none; }
+select.field {
+  appearance: none; -webkit-appearance: none; cursor: pointer; font-weight: 600; padding-right: 34px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%23e8c27a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center; background-size: 10px; font-weight: 500;
+}
+select.field option { background: #2e1d15; color: var(--cream); }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; border-radius: 10px; padding: 9px 14px;
+  font-weight: 700; font-size: 14px; border: 1px solid var(--line); background: var(--surface);
+  transition: transform .15s, background .15s;
+}
+.btn:hover { background: #3a251b; }
+.btn:active { transform: translateY(1px); }
+.btn.primary { background: var(--amber); color: #2a1408; border-color: var(--amber); }
+.btn.primary:hover { background: var(--amber-soft); }
+.btn svg { width: 18px; height: 18px; }
+.tools-right { display: flex; gap: 10px; margin-left: auto; flex-wrap: wrap; }
+.tb-btn { border-radius: 999px; padding: 8px 18px; font-weight: 500; letter-spacing: .02em; }
+.tb-add { background: var(--velvet-2); border: 1px solid rgba(232,194,122,.55); color: #f6dca8; box-shadow: 0 2px 10px rgba(0,0,0,.3); }
+.tb-add:hover { background: #8c2a3a; border-color: #e8c27a; }
+.tb-add svg { width: 15px; height: 15px; }
+
+/* Séance mystère */
+@property --spin { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+.tb-mystery {
+  position: relative; border: 1px solid transparent;
+  background:
+    linear-gradient(#150b0a, #150b0a) padding-box,
+    conic-gradient(from var(--spin), rgba(232,194,122,.15), #f6dca8 12%, rgba(232,194,122,.15) 28%, rgba(232,194,122,.15) 60%, #e8c27a 72%, rgba(232,194,122,.15) 86%) border-box;
+  animation: spinBorder 4s linear infinite;
+  transition: box-shadow .3s;
+}
+@keyframes spinBorder { to { --spin: 360deg; } }
+.tb-mystery:hover { background: linear-gradient(#22110f, #22110f) padding-box, conic-gradient(from var(--spin), #e8c27a, #f6dca8, #e8c27a) border-box; box-shadow: 0 0 22px rgba(232,194,122,.28); }
+.tb-mystery .txt {
+  background: linear-gradient(100deg, #b89d86 30%, #fff3d6 50%, #b89d86 70%) 0 0 / 250% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: shimmer 3.5s ease-in-out infinite; font-style: italic;
+}
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+.tb-mystery .q {
+  width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+  font-family: var(--display); font-size: 15px; line-height: 1; color: #2a1408;
+  background: radial-gradient(circle at 35% 30%, #fff3d6, #e8c27a 60%, #a8732b);
+  box-shadow: 0 0 10px rgba(232,194,122,.5); transition: transform .5s cubic-bezier(.3,1.6,.5,1);
+}
+.tb-mystery:hover .q { transform: rotate(360deg) scale(1.1); }
+
+/* Mur d'affiches */
+main { padding-block: 28px 60px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 28px 22px; }
+@media (max-width: 480px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 14px; } }
+.card { background: none; border: 0; padding: 0; text-align: left; display: grid; gap: 10px; perspective: 800px; min-width: 0; }
+.card .tilt { transition: transform .25s ease-out, box-shadow .25s; transform-style: preserve-3d; border-radius: 10px; box-shadow: 0 10px 24px rgba(0,0,0,.45); }
+.card:hover .tilt, .card:focus-visible .tilt { box-shadow: 0 22px 44px rgba(0,0,0,.6), 0 0 0 1px rgba(246,200,119,.35); }
+.card-info { display: grid; gap: 2px; min-width: 0; }
+.card-title { font-weight: 700; font-size: 15px; line-height: 1.3; overflow-wrap: anywhere; }
+.card-meta { font-size: 13px; color: var(--muted); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.mini-rating { display: inline-flex; gap: 1px; }
+.mini-rating svg { width: 15px; height: 15px; }
+
+/* Affiches générées */
+.poster {
+  position: relative; aspect-ratio: 2 / 3; width: 100%; max-width: 100%; border-radius: 10px; overflow: hidden;
+  background: linear-gradient(165deg, var(--pa), var(--pb));
+  isolation: isolate;
+}
+.poster::after {
+  content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none; mix-blend-mode: overlay; opacity: .55;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.poster .motif { position: absolute; inset: 0; z-index: 1; }
+.m-soleil .motif { background: radial-gradient(circle at 50% 38%, var(--pc) 0 22%, transparent 22.5%); }
+.m-dunes .motif { background:
+  radial-gradient(120% 60% at 20% 105%, rgba(0,0,0,.35) 0 45%, transparent 46%),
+  radial-gradient(120% 55% at 85% 100%, rgba(0,0,0,.25) 0 48%, transparent 49%),
+  radial-gradient(circle at 70% 26%, var(--pc) 0 9%, transparent 9.5%); }
+.m-orbite .motif { background:
+  radial-gradient(circle at 50% 40%, transparent 0 18%, var(--pc) 18.5% 19.5%, transparent 20% 30%, rgba(255,255,255,.18) 30.5% 31%, transparent 31.5%),
+  radial-gradient(circle at 50% 40%, rgba(0,0,0,.6) 0 17%, transparent 17.5%); }
+.m-rayures .motif { background: repeating-linear-gradient(-35deg, transparent 0 18px, rgba(255,255,255,.08) 18px 36px), radial-gradient(circle at 30% 30%, var(--pc) 0 12%, transparent 12.5%); }
+.m-rideau .motif { background:
+  repeating-linear-gradient(90deg, rgba(0,0,0,.28) 0 6%, transparent 6% 12%),
+  radial-gradient(70% 40% at 50% 0%, var(--pc), transparent 70%); }
+.m-fenetre .motif { background:
+  linear-gradient(var(--pc), var(--pc)) 50% 34% / 38% 30% no-repeat,
+  linear-gradient(90deg, transparent 49%, rgba(0,0,0,.4) 49% 51%, transparent 51%) 50% 34% / 38% 30% no-repeat; opacity: .9; }
+.poster .p-text {
+  position: absolute; inset: auto 0 0 0; z-index: 2; padding: 14% 9% 9%;
+  background: linear-gradient(transparent, rgba(0,0,0,.55));
+  display: grid; gap: 4px;
+}
+.poster .p-title {
+  font-family: var(--display); font-size: clamp(16px, 2.2vw, 22px); line-height: 1.05; color: #fff6e6;
+  text-wrap: balance; overflow-wrap: anywhere; text-shadow: 0 2px 10px rgba(0,0,0,.4);
+}
+.poster .p-year { font-family: var(--mono); font-size: 11px; letter-spacing: .18em; color: rgba(255,246,230,.75); }
+.ribbon {
+  position: absolute; top: 10px; right: 10px; z-index: 4;
+  font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase;
+  background: var(--cream); color: #2a1408; padding: 3px 8px; border-radius: 6px;
+}
+
+.empty { text-align: center; color: var(--muted); padding: 60px 16px; display: grid; gap: 12px; justify-items: center; }
+.empty strong { font-family: var(--display); font-weight: 400; font-size: 26px; color: var(--cream); }
+
+/* Fiches (dialogues) */
+dialog {
+  border: 0; padding: 0; color: var(--cream); background: var(--surface);
+  border-radius: 16px; width: min(880px, calc(100vw - 32px)); max-height: calc(100dvh - 32px);
+  box-shadow: 0 30px 80px rgba(0,0,0,.7), 0 0 0 1px var(--line);
+}
+dialog::backdrop { background: rgba(14,8,6,.78); backdrop-filter: blur(3px); }
+dialog[open] { animation: rise .28s ease-out; }
+@keyframes rise { from { opacity: 0; transform: translateY(14px) scale(.98); } }
+.sheet { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 26px; padding: 26px; }
+@media (max-width: 680px) { .sheet { grid-template-columns: minmax(0,1fr); padding: 18px; gap: 18px; } .sheet .poster { max-width: 200px; margin: 0 auto; } }
+.sheet-body { display: grid; gap: 16px; align-content: start; min-width: 0; }
+.sheet h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(26px, 4vw, 36px); line-height: 1.05; text-wrap: balance; overflow-wrap: anywhere; }
+.sub { color: var(--muted); font-size: 14px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.synopsis { margin: 0; max-width: 62ch; }
+.label { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; display: block; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chip { font-size: 13px; padding: 3px 10px; border-radius: 999px; background: var(--bg-2); border: 1px solid var(--line); display: inline-flex; gap: 6px; align-items: center; }
+.chip.genre { border-color: transparent; background: rgba(122,36,51,.55); }
+.chip button { border: 0; background: none; padding: 0; color: var(--muted); line-height: 1; font-size: 15px; }
+.chip button:hover { color: var(--cream); }
+.tag-input { width: 140px; padding: 4px 10px; font-size: 13px; border-radius: 999px; }
+
+.rating { display: flex; gap: 4px; align-items: center; }
+.rating button { border: 0; background: none; padding: 2px; border-radius: 8px; transition: transform .15s; }
+.rating button:hover { transform: translateY(-3px) rotate(-6deg); }
+.rating svg { width: 34px; height: 34px; }
+.rating-txt { font-family: var(--mono); font-size: 13px; color: var(--muted); margin-left: 8px; font-variant-numeric: tabular-nums; }
+textarea.field { width: 100%; min-height: 90px; resize: vertical; line-height: 1.5; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+.seen-toggle.is-seen { background: rgba(143,196,138,.15); border-color: var(--ok); color: var(--ok); }
+.close {
+  position: absolute; top: 12px; right: 12px; z-index: 5; width: 36px; height: 36px; border-radius: 50%;
+  border: 1px solid var(--line); background: rgba(27,17,13,.8); font-size: 20px; line-height: 1;
+}
+.danger { color: #e9a19c; }
+.danger.confirm { background: #6e2424; color: #fff; border-color: #a33; }
+.sheet-foot { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 14px; }
+
+/* Formulaire d'ajout */
+.form { padding: 26px; display: grid; gap: 14px; }
+.form h2 { margin: 0 0 4px; font-family: var(--display); font-weight: 400; font-size: 30px; }
+.form .hint { margin: 0; color: var(--muted); font-size: 14px; }
+.form label { display: grid; gap: 6px; font-size: 14px; font-weight: 600; }
+.form .two { display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr); gap: 12px; }
+@media (max-width: 480px) { .form .two { grid-template-columns: minmax(0,1fr); } .form { padding: 18px; } }
+.form .field { width: 100%; }
+.err { color: #e9a19c; font-size: 13px; margin: 0; }
+
+/* Tirage au sort */
+.draw { padding: 34px 24px 26px; text-align: center; display: grid; gap: 16px; justify-items: center; }
+.draw .kicker { font-family: var(--mono); font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--amber); }
+.draw .reel { font-family: var(--display); font-size: clamp(26px, 5vw, 40px); min-height: 1.3em; line-height: 1.1; text-wrap: balance; }
+.draw .poster { width: 170px; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%) translateY(30px);
+  background: var(--cream); color: #2a1408; padding: 10px 18px; border-radius: 999px; font-weight: 600; font-size: 14px;
+  opacity: 0; transition: .25s; pointer-events: none; z-index: 50; max-width: calc(100vw - 32px);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+footer { border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+footer .wrap { padding-block: 22px 30px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+/* Rideaux d'ouverture */
+.curtains { position: fixed; inset: 0; z-index: 100; overflow: hidden; cursor: pointer; background: transparent; animation: curtainsOut .5s ease 2.5s forwards; }
+.cur {
+  position: absolute; top: 0; bottom: 0; width: 50.6%; display: flex; overflow: hidden;
+  filter: drop-shadow(0 0 24px rgba(0,0,0,.75));
+  animation: 2.2s cubic-bezier(.6,0,.2,1) .3s forwards;
+}
+.cur-l { left: 0; animation-name: drawL; }
+.cur-r { right: 0; animation-name: drawR; }
+.pleat {
+  flex: var(--g) 1 0; min-width: 0;
+  background: linear-gradient(90deg, #22050b 0%, #5e1220 18%, #9c2a3c 40%, #c4485a 50%, #9a2839 60%, #5a1120 82%, #22050b 100%);
+}
+.cur::before {
+  content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    radial-gradient(90% 55% at 50% 0%, rgba(255,214,170,.18), transparent 70%),
+    linear-gradient(180deg, rgba(0,0,0,.55), transparent 18%, transparent 78%, rgba(0,0,0,.6));
+}
+.cur::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 16px; z-index: 2;
+  background: linear-gradient(180deg, #c99a52, #8a5a22 40%, transparent 40%), repeating-linear-gradient(90deg, #e8c27a 0 2px, #8a5a22 2px 3px, transparent 3px 5px);
+  background-size: 100% 100%, 100% 100%;
+}
+.cur-l { border-bottom-right-radius: 0; }
+@keyframes drawL { to { width: 11%; border-bottom-right-radius: 100% 78%; } }
+@keyframes drawR { to { width: 11%; border-bottom-left-radius: 100% 78%; } }
+.cur-valance {
+  position: absolute; inset: 0 0 auto; height: 64px; z-index: 3;
+  background:
+    radial-gradient(60% 120% at 50% 0%, rgba(255,214,170,.14), transparent 70%),
+    linear-gradient(180deg, #2a060d, #6e1828 55%, #4a0f19);
+  box-shadow: 0 10px 18px rgba(0,0,0,.55);
+  animation: valanceUp .7s ease-in 2.1s forwards;
+}
+.cur-valance::before { content: ""; position: absolute; left: 0; right: 0; bottom: 10px; height: 3px; background: linear-gradient(90deg, #8a5a22, #f2d08f, #8a5a22); }
+.cur-valance::after { content: ""; position: absolute; left: 0; right: 0; bottom: -8px; height: 12px; background: repeating-linear-gradient(90deg, #f2d08f 0 2px, #a8732b 2px 3px, transparent 3px 4px); }
+@keyframes valanceUp { to { transform: translateY(-110%); } }
+.cur-title {
+  position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; text-align: center; padding: 16px;
+  font-family: var(--display); font-size: clamp(26px, 6vw, 48px); color: #f6dca8;
+  text-shadow: 0 0 20px rgba(246,200,119,.5), 0 3px 0 #2a0a10;
+  animation: titleOut .5s ease .5s forwards;
+}
+.cur-title small { display: block; font-family: var(--mono); font-size: 12px; letter-spacing: .3em; text-transform: uppercase; color: #e8c27a; margin-top: 10px; text-shadow: none; }
+@keyframes titleOut { to { opacity: 0; transform: scale(.96); } }
+@keyframes curtainsOut { to { opacity: 0; visibility: hidden; } }
+
+/* Amorce de pellicule : compte à rebours */
+@property --sweep { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+.leader {
+  position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; overflow: hidden; cursor: pointer;
+  background: radial-gradient(circle at 50% 50%, #8a7458 0%, #5a4733 45%, #1e140c 100%);
+  animation: ldFlicker .12s steps(2) infinite;
+}
+.leader::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(rgba(240,226,200,.55), rgba(240,226,200,.55)) 50% 0 / 2px 100% no-repeat,
+    linear-gradient(rgba(240,226,200,.55), rgba(240,226,200,.55)) 0 50% / 100% 2px no-repeat;
+}
+.ld-frame { position: relative; width: min(72vmin, 440px); aspect-ratio: 1; max-width: 100%; animation: ldJitter .2s steps(3) infinite; }
+.ld-sweep {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(rgba(20,12,6,.55) var(--sweep), transparent 0);
+  animation: ldSweep 1s linear infinite;
+}
+.ld-rings {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: radial-gradient(circle, transparent 0 61%, #f0e2c8 61.4% 62.6%, transparent 63% 72%, #f0e2c8 72.4% 73.6%, transparent 74%);
+}
+.ld-num {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-family: "Figtree", system-ui, sans-serif; font-weight: 700; font-size: min(40vmin, 240px); line-height: 1;
+  color: #f4e8d2; text-shadow: 0 0 14px rgba(0,0,0,.35);
+}
+.ld-grain {
+  position: absolute; inset: -50%; pointer-events: none; opacity: .5; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: ldGrain .3s steps(3) infinite;
+}
+.ld-scratch {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(rgba(20,12,6,.5), rgba(20,12,6,.5)) 23% 0 / 1px 100% no-repeat,
+    linear-gradient(rgba(255,245,225,.35), rgba(255,245,225,.35)) 71% 0 / 1px 100% no-repeat;
+  animation: ldScratch .5s steps(4) infinite;
+}
+.ld-vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle, transparent 45%, rgba(10,6,3,.8) 100%); }
+@property --iris { syntax: "<length>"; inherits: false; initial-value: 0px; }
+.leader.done {
+  -webkit-mask: radial-gradient(circle at 50% 50%, transparent var(--iris), #000 calc(var(--iris) + 90px));
+  mask: radial-gradient(circle at 50% 50%, transparent var(--iris), #000 calc(var(--iris) + 90px));
+  animation: ldIris 1.15s cubic-bezier(.7,0,.3,1) forwards;
+}
+.leader.done .ld-frame { animation: none; }
+.ld-num { transition: opacity .35s, transform .5s; }
+.leader.done .ld-num { opacity: 0; transform: scale(1.25); }
+@keyframes ldIris { to { --iris: 150vmax; } }
+.intro-hide { opacity: 0; transform: scale(.985); filter: blur(6px); }
+.intro-reveal { transition: opacity 1.1s ease, transform 1.3s cubic-bezier(.2,.7,.2,1), filter 1.1s ease; }
+@keyframes ldSweep { to { --sweep: 360deg; } }
+@keyframes ldFlicker { 50% { filter: brightness(1.06); } }
+@keyframes ldJitter { 33% { transform: translate(1px, -1px); } 66% { transform: translate(-1px, 1px); } }
+@keyframes ldGrain { 33% { transform: translate(-6%, 4%); } 66% { transform: translate(5%, -6%); } }
+@keyframes ldScratch { 25% { background-position: 40% 0, 64% 0; } 50% { background-position: 18% 0, 80% 0; } 75% { background-position: 55% 0, 30% 0; } }
+@keyframes ldOut { 0% { filter: brightness(1); } 25% { filter: brightness(2.2); opacity: 1; } 100% { filter: brightness(2.2); opacity: 0; visibility: hidden; } }
+
+/* Variante 1 : lumière du projecteur */
+.ld-glow { position: absolute; inset: 0; z-index: 4; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 45%, #fff4d8 0%, #f6c877 45%, #b8661f 100%); }
+.leader.v-light { animation: lightOut 1.7s ease forwards; }
+.leader.v-light .ld-glow { animation: glowUp 1.7s ease forwards; }
+.leader.v-light .ld-num { opacity: 0; transform: scale(1.15); }
+@keyframes glowUp { 0% { opacity: 0; } 45% { opacity: 1; } 100% { opacity: 1; } }
+@keyframes lightOut { 0%, 45% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+
+/* Variante 2 : pellicule qui brûle */
+.ld-burn { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; filter: blur(1.2px) saturate(1.2); }
+.leader.v-burn { -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
+.leader.v-burn .ld-frame { animation-duration: .08s; }
+
+/* Variante 3 : fin de bobine */
+.ld-sprk { position: absolute; top: 0; bottom: -120px; width: 34px; z-index: 6; opacity: 0; transition: opacity .25s;
+  background: #0d0806 radial-gradient(circle, transparent 0, transparent 0) ;
+  background-image: linear-gradient(#e9dcc4, #e9dcc4); background-size: 14px 20px; background-repeat: repeat-y; background-position: center 6px;
+  -webkit-mask: none; }
+.ld-sprk { background: repeating-linear-gradient(180deg, #0d0806 0 10px, transparent 10px 30px) center / 14px 100% no-repeat, #0d0806; }
+.ld-sprk::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(180deg, transparent 0 10px, rgba(233,220,196,.85) 10px 30px) center / 14px 100% no-repeat; border-radius: 3px; }
+.ld-sprk.l { left: 0; } .ld-sprk.r { right: 0; }
+.leader::after { content: ""; position: absolute; left: 0; right: 0; bottom: -22px; height: 22px; background: #0d0806; z-index: 6; }
+.leader.v-reel { overflow: visible; animation: reelUp 1.25s cubic-bezier(.55,0,.35,1) forwards; }
+.leader.v-reel .ld-sprk { opacity: 1; }
+@keyframes reelUp { 0% { transform: translateY(0); } 18% { transform: translateY(2.5%); } 100% { transform: translateY(-118%); } }
+.intro-hide.intro-below { transform: translateY(70px); filter: none; }
+
+/* Panneau de test des intros (temporaire) */
+.intro-lab {
+  position: fixed; z-index: 60;
+  left: calc(16px + env(safe-area-inset-left, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  max-width: calc(100vw - 32px); display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  padding: 8px 10px; border-radius: 18px; font-size: 13px;
+  background: rgba(40,14,19,.95); border: 1px solid rgba(232,194,122,.4); box-shadow: 0 10px 30px rgba(0,0,0,.5);
+}
+.intro-lab span { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #e8c27a; padding-inline: 4px; }
+.intro-lab button { border: 1px solid rgba(232,194,122,.3); background: rgba(0,0,0,.25); color: var(--cream); border-radius: 999px; padding: 6px 12px; font-size: 13px; }
+.intro-lab button:hover { border-color: #e8c27a; background: var(--velvet-2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .curtains, .leader { display: none; }
+  *, *::before { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="leader" id="leader" aria-hidden="true">
+  <div class="ld-frame"><div class="ld-sweep"></div><div class="ld-rings"></div><div class="ld-num" id="ldNum">3</div></div>
+  <div class="ld-grain"></div><div class="ld-scratch"></div><div class="ld-vignette"></div>
+  <div class="ld-glow"></div><div class="ld-sprk l"></div><div class="ld-sprk r"></div>
+</div>
+<div class="demo-note"><b>Version de test</b> · tes modifications disparaissent au rechargement de la page</div>
+
+<header class="marquee wrap">
+  <div class="sign">
+    <div class="sign-inner" id="signInner">
+      <div class="bulbs" id="bulbs"></div>
+      <h1><span class="c-left" id="cornL"></span><span class="word">Popcorn Club</span><span class="c-right" id="cornR"></span></h1>
+      <div class="deco" aria-hidden="true">★★★</div>
+      <div class="screen" id="tally" aria-label="Mes chiffres"></div>
+    </div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="wrap">
+    <div class="seg" role="group" aria-label="Statut">
+      <button type="button" data-status="tous" aria-pressed="true">Tous</button>
+      <button type="button" data-status="a-voir" aria-pressed="false">À voir</button>
+      <button type="button" data-status="vu" aria-pressed="false">Vus</button>
+    </div>
+    <label class="search" for="q">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.6-4.6"/></svg>
+      <input class="field" id="q" type="search" placeholder="Chercher un titre, un tag…" aria-label="Chercher dans ma liste">
+    </label>
+    <select class="field" id="genre" aria-label="Genre"></select>
+    <select class="field" id="note" aria-label="Note">
+      <option value="0">Toutes les notes</option>
+      <option value="5">5 pop-corns</option>
+      <option value="4">4 et plus</option>
+      <option value="3">3 et plus</option>
+    </select>
+    <select class="field" id="sort" aria-label="Trier">
+      <option value="ajout">Ajoutés récemment</option>
+      <option value="titre">Titre A → Z</option>
+      <option value="annee">Plus récents d'abord</option>
+      <option value="note">Mieux notés</option>
+    </select>
+    <div class="tools-right">
+      <button class="btn tb-btn tb-mystery" id="randomBtn" type="button" aria-label="Séance mystère : tirer un film au hasard"><span class="q" aria-hidden="true">?</span><span class="txt">Séance mystère</span></button>
+      <button class="btn tb-btn tb-add" id="addBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Ajouter un film</button>
+    </div>
+  </div>
+</div>
+
+<main class="wrap">
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" hidden>
+    <strong>Aucun film ici</strong>
+    <span>Change les filtres, ou ajoute un film à ta liste.</span>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Popcorn Club · séance privée</span>
+    <span>Les infos de films viendront de TMDB. Ce site utilise l'API TMDB sans être approuvé ni certifié par TMDB.</span>
+  </div>
+</footer>
+
+<dialog id="sheetDlg" aria-label="Fiche du film"></dialog>
+<dialog id="addDlg" aria-label="Ajouter un film">
+  <form class="form" id="addForm" novalidate>
+    <button class="close" type="button" data-close aria-label="Fermer">×</button>
+    <div>
+      <h2>Nouveau film</h2>
+      <p class="hint" id="addHint">Tape un titre : l'affiche, l'année, le synopsis et les genres arrivent tout seuls.</p>
+    </div>
+    <div class="tmdb-search" id="tmdbBox">
+      <input class="field" id="tSearch" type="search" placeholder="Ex. Le Grand Bleu" aria-label="Rechercher un film" autocomplete="off">
+      <div class="results" id="tResults"></div>
+    </div>
+    <details class="manual" id="manual"><summary>Ajouter à la main</summary><div class="manual-body">
+    <div class="two">
+      <label for="fTitle">Titre<input class="field" id="fTitle" required placeholder="Ex. Le Grand Bleu"></label>
+      <label for="fYear">Année<input class="field" id="fYear" inputmode="numeric" placeholder="1988"></label>
+    </div>
+    <label for="fGenres">Genres<input class="field" id="fGenres" placeholder="Drame, Aventure (séparés par des virgules)"></label>
+    <label for="fSyn">Synopsis<textarea class="field" id="fSyn" placeholder="De quoi ça parle ?"></textarea></label>
+    <label for="fTags">Tags perso<input class="field" id="fTags" placeholder="soirée pluie, avec Léa…"></label>
+    <p class="err" id="fErr" hidden>Donne au moins un titre au film.</p>
+    <div class="row" style="justify-content:flex-end">
+      <button class="btn" type="button" data-close>Annuler</button>
+      <button class="btn primary" type="submit">Ajouter à ma liste</button>
+    </div>
+    </div></details>
+  </form>
+</dialog>
+<dialog id="drawDlg" aria-label="Film au hasard"><div class="draw" id="draw"></div></dialog>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+// ============================================================
+//  COLLE TA CLÉ API TMDB ENTRE LES GUILLEMETS CI-DESSOUS
+// ============================================================
+const TMDB_KEY = "COLLE_TA_CLE_ICI";
+// ============================================================
+const HAS_KEY = TMDB_KEY.length > 10 && !TMDB_KEY.startsWith("COLLE");
+
+(function () {
+  const PALETTES = [
+    ["#c9662a", "#3b1308", "#f6c877", "dunes"],
+    ["#d9826d", "#2c3b5c", "#ffe2c4", "fenetre"],
+    ["#5a8f6b", "#16263a", "#f4d27a", "soleil"],
+    ["#7f6b5b", "#1a1414", "#e8d6bd", "rayures"],
+    ["#1d2c4a", "#05070f", "#f2a83a", "orbite"],
+    ["#b8342f", "#3a5a2b", "#f6d36b", "soleil"],
+    ["#2a3f8f", "#d9a03a", "#ffcf5a", "rideau"],
+    ["#1f3a2c", "#0b0b0b", "#e9d36c", "fenetre"],
+    ["#a7463a", "#2a1a2e", "#f4e7d0", "rideau"],
+    ["#6a2c7a", "#e86a3a", "#fde7a6", "orbite"]
+  ];
+  let nextId = 1;
+  const film = (title, year, genres, synopsis, extra, pal) => ({
+    id: nextId++, title, year, genres, synopsis,
+    status: "a-voir", rating: 0, comment: "", seenDate: "", tags: [],
+    poster: PALETTES[pal], ...extra
+  });
+  let films = [
+    film("Dune : Deuxième partie", 2024, ["Science-fiction", "Aventure"], "Paul Atréides rejoint les Fremen du désert d'Arrakis et prépare sa revanche contre ceux qui ont détruit sa famille, tout en redoutant l'avenir qu'il entrevoit.", { tags: ["grand écran"] }, 0),
+    film("Past Lives", 2023, ["Drame", "Romance"], "Deux amis d'enfance séparés quand l'une émigre de Séoul se retrouvent à New York vingt ans plus tard, le temps d'une semaine.", { tags: ["soirée calme"] }, 1),
+    film("Le Voyage de Chihiro", 2001, ["Animation", "Fantastique"], "Une fillette égarée dans un monde d'esprits doit travailler dans une maison de bains pour libérer ses parents changés en cochons.", { tags: ["en famille", "Ghibli"] }, 2),
+    film("Anatomie d'une chute", 2023, ["Drame", "Thriller"], "Une écrivaine est soupçonnée de la mort de son mari, retrouvé au pied de leur chalet. Leur fils malvoyant est le seul témoin.", {}, 3),
+    film("Interstellar", 2014, ["Science-fiction", "Drame"], "Alors que la Terre s'épuise, un ancien pilote quitte sa fille pour traverser un trou de ver à la recherche d'une nouvelle planète habitable.", { tags: ["grand écran"] }, 4),
+    film("Le Fabuleux Destin d'Amélie Poulain", 2001, ["Comédie", "Romance"], "Serveuse dans un café de Montmartre, Amélie décide de faire en secret le bonheur des gens qui l'entourent.", {}, 5),
+    film("La La Land", 2016, ["Comédie musicale", "Romance"], "À Los Angeles, une actrice en devenir et un pianiste de jazz tombent amoureux alors que leurs rêves les tirent dans des directions opposées.", { status: "vu", rating: 5, comment: "Les couleurs, la musique, cette fin… j'ai pleuré.", seenDate: "2026-02-14", tags: ["à revoir"] }, 6),
+    film("Parasite", 2019, ["Thriller", "Drame"], "Une famille pauvre s'infiltre un à un au service d'une famille riche, jusqu'à ce qu'un secret enfoui sous la maison change tout.", { status: "vu", rating: 4, comment: "Tendu de bout en bout. La scène de l'orage m'a scotchée.", seenDate: "2026-03-08" }, 7),
+    film("Les Intouchables", 2011, ["Comédie", "Drame"], "Un riche aristocrate tétraplégique engage comme aide à domicile un jeune homme de banlieue qui n'a rien du profil attendu.", { status: "vu", rating: 4, comment: "Le feel good parfait pour un dimanche soir.", seenDate: "2025-12-21", tags: ["en famille"] }, 8),
+    film("Everything Everywhere All at Once", 2022, ["Science-fiction", "Comédie", "Action"], "Une gérante de laverie découvre qu'elle peut accéder aux vies de ses autres versions dans des univers parallèles pour sauver le multivers.", { status: "vu", rating: 5, comment: "Complètement fou et pourtant tellement touchant.", seenDate: "2026-05-30", tags: ["coup de cœur"] }, 9)
+  ];
+  films.forEach((f, i) => f.added = i);
+  const state = { status: "tous", q: "", genre: "", note: 0, sort: "ajout" };
+  const $ = (s, el = document) => el.querySelector(s);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function corn(on) {
+    const bucket = on ? "#f4e7d0" : "#4a3022", stripe = on ? "#c2283c" : "#5e3c2b", puff = on ? "#f6c877" : "#5e3c2b", puff2 = on ? "#fff3d6" : "#6b4633";
+    return `<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="10" cy="11" r="4.6" fill="${puff}"/><circle cx="16" cy="8.5" r="5" fill="${puff2}"/><circle cx="22" cy="11" r="4.6" fill="${puff}"/><circle cx="13" cy="12.5" r="3.8" fill="${puff2}"/><circle cx="19.5" cy="12.8" r="3.8" fill="${puff}"/><path d="M6 13h20l-2.6 16.2a1.4 1.4 0 0 1-1.4 1.2H10a1.4 1.4 0 0 1-1.4-1.2Z" fill="${bucket}"/><path d="M10.5 13h3l.6 17.4h-2.8ZM18.5 13h3l-1.2 17.4h-2.6Z" fill="${stripe}"/></svg>`;
+  }
+  $("#cornL").innerHTML = corn(true); $("#cornR").innerHTML = corn(true);
+  function placeBulbs() {
+    const box = $("#signInner"), w = box.clientWidth, h = box.clientHeight, m = 13, step = 22;
+    const W = w - 2 * m, H = h - 2 * m, per = 2 * (W + H), n = Math.max(8, Math.round(per / step));
+    let html = "";
+    for (let i = 0; i < n; i++) {
+      let d = (i / n) * per, x, y;
+      if (d < W) { x = d; y = 0; } else if ((d -= W) < H) { x = W; y = d; } else if ((d -= H) < W) { x = W - d; y = H; } else { d -= W; x = 0; y = H - d; }
+      html += `<i class="bulb" style="left:${x + m}px;top:${y + m}px;animation-delay:${-(i % 3) * 0.5}s"></i>`;
+    }
+    $("#bulbs").innerHTML = html;
+  }
+  placeBulbs();
+  new ResizeObserver(placeBulbs).observe($("#signInner"));
+  if (document.fonts) document.fonts.ready.then(placeBulbs);
+
+  function posterHTML(f, ribbon) {
+    const [a, b, c, m] = f.poster;
+    if (f.img) return `<div class="poster" style="--pa:${a};--pb:${b}"><img src="${esc(f.img)}" alt="Affiche de ${esc(f.title)}" loading="lazy">${ribbon && f.status === "vu" ? '<span class="ribbon">Vu</span>' : ""}</div>`;
+    return `<div class="poster m-${m}" style="--pa:${a};--pb:${b};--pc:${c}">
+      <div class="motif"></div>
+      ${ribbon && f.status === "vu" ? '<span class="ribbon">Vu</span>' : ""}
+      <div class="p-text"><span class="p-title">${esc(f.title)}</span>${f.year ? `<span class="p-year">${esc(f.year)}</span>` : ""}</div>
+    </div>`;
+  }
+  const miniRating = r => `<span class="mini-rating" aria-label="${r} pop-corns sur 5">${[1,2,3,4,5].map(i => corn(i <= r)).join("")}</span>`;
+  const fmtDate = d => d ? new Date(d + "T12:00").toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "";
+
+  function refreshGenres() {
+    const all = [...new Set(films.flatMap(f => f.genres))].sort((x, y) => x.localeCompare(y, "fr"));
+    if (state.genre && !all.includes(state.genre)) state.genre = "";
+    $("#genre").innerHTML = `<option value="">Tous les genres</option>` + all.map(g => `<option ${g === state.genre ? "selected" : ""}>${esc(g)}</option>`).join("");
+  }
+
+  function visible() {
+    const q = state.q.trim().toLowerCase();
+    let list = films.filter(f =>
+      (state.status === "tous" || f.status === state.status) &&
+      (!state.genre || f.genres.includes(state.genre)) &&
+      (!state.note || f.rating >= state.note) &&
+      (!q || (f.title + " " + f.tags.join(" ") + " " + f.genres.join(" ")).toLowerCase().includes(q)));
+    const by = {
+      ajout: (x, y) => y.added - x.added,
+      titre: (x, y) => x.title.localeCompare(y.title, "fr"),
+      annee: (x, y) => (y.year || 0) - (x.year || 0),
+      note: (x, y) => y.rating - x.rating || x.title.localeCompare(y.title, "fr")
+    };
+    return list.sort(by[state.sort]);
+  }
+
+  function render() {
+    const toSee = films.filter(f => f.status === "a-voir").length, seen = films.length - toSee;
+    $("#tally").innerHTML = `<div class="stat"><b>${toSee}</b><span>à voir</span></div><div class="stat"><b>${seen}</b><span>vu${seen > 1 ? "s" : ""}</span></div><div class="stat"><b>${films.length}</b><span>au total</span></div>`;
+    const list = visible();
+    $("#grid").innerHTML = list.map(f => `
+      <button class="card" type="button" data-id="${f.id}">
+        <div class="tilt">${posterHTML(f, true)}</div>
+        <div class="card-info">
+          <span class="card-title">${esc(f.title)}</span>
+          <span class="card-meta">${f.year ? esc(f.year) : ""}${f.status === "vu" && f.rating ? miniRating(f.rating) : `<span>${esc(f.genres[0] || "")}</span>`}</span>
+        </div>
+      </button>`).join("");
+    $("#empty").hidden = list.length > 0;
+  }
+
+  // Effet de relief au survol
+  const grid = $("#grid");
+  if (matchMedia("(pointer: fine)").matches && !reduce) {
+    grid.addEventListener("pointermove", e => {
+      const t = e.target.closest(".tilt"); if (!t) return;
+      const r = t.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+      t.style.transform = `rotateY(${x * 14}deg) rotateX(${-y * 14}deg) translateY(-6px) scale(1.03)`;
+    });
+    grid.addEventListener("pointerout", e => { const t = e.target.closest(".tilt"); if (t && !t.contains(e.relatedTarget)) t.style.transform = ""; });
+  }
+  grid.addEventListener("click", e => { const c = e.target.closest(".card"); if (c) openSheet(+c.dataset.id); });
+
+  // Fiche film
+  const sheet = $("#sheetDlg");
+  let current = null;
+  function openSheet(id) {
+    current = films.find(f => f.id === id);
+    drawSheet();
+    if (!sheet.open) sheet.showModal();
+  }
+  function drawSheet() {
+    const f = current, seen = f.status === "vu";
+    sheet.innerHTML = `
+      <button class="close" type="button" data-close aria-label="Fermer">×</button>
+      <div class="sheet">
+        ${posterHTML(f, false)}
+        <div class="sheet-body">
+          <div>
+            <h2>${esc(f.title)}</h2>
+            <div class="sub">${f.year ? `<span>${esc(f.year)}</span>` : ""}<span class="chips">${f.genres.map(g => `<span class="chip genre">${esc(g)}</span>`).join("")}</span></div>
+          </div>
+          ${f.synopsis ? `<p class="synopsis">${esc(f.synopsis)}</p>` : ""}
+          <div class="row">
+            <button class="btn seen-toggle ${seen ? "is-seen" : ""}" type="button" id="seenBtn" aria-pressed="${seen}">${seen ? "✓ Vu" : "Marquer comme vu"}</button>
+            ${seen ? `<label style="display:grid;gap:4px"><span class="label" style="margin:0">Vu le</span><input class="field" type="date" id="seenDate" value="${esc(f.seenDate)}"></label>` : ""}
+          </div>
+          <div>
+            <span class="label">Ma note</span>
+            <div class="rating" role="group" aria-label="Ma note">
+              ${[1,2,3,4,5].map(i => `<button type="button" data-r="${i}" aria-label="Noter ${i} pop-corn${i > 1 ? "s" : ""} sur 5" aria-pressed="${i <= f.rating}">${corn(i <= f.rating)}</button>`).join("")}
+              <span class="rating-txt">${f.rating ? f.rating + " / 5" : "pas encore noté"}</span>
+            </div>
+          </div>
+          <div>
+            <label class="label" for="cmt">Mon commentaire</label>
+            <textarea class="field" id="cmt" placeholder="${seen ? "Qu'est-ce que tu en as pensé ?" : "Pourquoi tu veux le voir, qui te l'a conseillé…"}">${esc(f.comment)}</textarea>
+          </div>
+          <div>
+            <span class="label">Mes tags</span>
+            <div class="chips">
+              ${f.tags.map((t, i) => `<span class="chip">${esc(t)}<button type="button" data-untag="${i}" aria-label="Retirer le tag ${esc(t)}">×</button></span>`).join("")}
+              <input class="field tag-input" id="tagIn" placeholder="+ ajouter un tag" aria-label="Ajouter un tag">
+            </div>
+          </div>
+          <div class="sheet-foot">
+            <button class="btn danger" type="button" id="delBtn">Retirer de ma liste</button>
+            <button class="btn primary" type="button" data-close>Fermer</button>
+          </div>
+        </div>
+      </div>`;
+  }
+  sheet.addEventListener("click", e => {
+    if (e.target === sheet || e.target.closest("[data-close]")) return sheet.close();
+    const f = current;
+    const r = e.target.closest("[data-r]");
+    if (r) { const v = +r.dataset.r; f.rating = f.rating === v ? 0 : v; drawSheet(); render(); return; }
+    if (e.target.closest("#seenBtn")) {
+      if (f.status === "vu") { f.status = "a-voir"; toast("Remis dans les films à voir"); }
+      else { f.status = "vu"; if (!f.seenDate) f.seenDate = new Date().toISOString().slice(0, 10); toast("Bien vu ! Tu peux le noter 🍿"); }
+      drawSheet(); render(); return;
+    }
+    const u = e.target.closest("[data-untag]");
+    if (u) { f.tags.splice(+u.dataset.untag, 1); drawSheet(); render(); $("#tagIn").focus(); return; }
+    const d = e.target.closest("#delBtn");
+    if (d) {
+      if (d.classList.contains("confirm")) {
+        films = films.filter(x => x !== f); sheet.close(); refreshGenres(); render(); toast(`« ${f.title} » a quitté ta liste`);
+      } else { d.classList.add("confirm"); d.textContent = "Confirmer la suppression"; }
+    }
+  });
+  sheet.addEventListener("input", e => {
+    if (e.target.id === "cmt") current.comment = e.target.value;
+    if (e.target.id === "seenDate") current.seenDate = e.target.value;
+  });
+  sheet.addEventListener("keydown", e => {
+    if (e.target.id === "tagIn" && e.key === "Enter") {
+      e.preventDefault();
+      const v = e.target.value.trim();
+      if (v && !current.tags.includes(v)) { current.tags.push(v); drawSheet(); render(); }
+      $("#tagIn").focus();
+    }
+  });
+
+  // Ajout
+  const addDlg = $("#addDlg"), form = $("#addForm");
+  $("#addBtn").addEventListener("click", () => {
+    form.reset(); $("#fErr").hidden = true; $("#tResults").innerHTML = "";
+    addDlg.showModal();
+    if (HAS_KEY) { $("#manual").open = false; $("#tSearch").focus(); } else { $("#manual").open = true; $("#fTitle").focus(); }
+  });
+  addDlg.addEventListener("click", e => { if (e.target === addDlg || e.target.closest("[data-close]")) addDlg.close(); });
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    const title = $("#fTitle").value.trim();
+    if (!title) { $("#fErr").hidden = false; $("#fTitle").focus(); return; }
+    const split = s => s.split(",").map(x => x.trim()).filter(Boolean);
+    const hash = [...title].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+    const yr = parseInt($("#fYear").value, 10);
+    const f = film(title, isNaN(yr) ? "" : yr, split($("#fGenres").value), $("#fSyn").value.trim(), { tags: split($("#fTags").value) }, hash % PALETTES.length);
+    f.added = Math.max(...films.map(x => x.added), 0) + 1;
+    films.push(f);
+    addDlg.close(); refreshGenres(); render(); toast(`« ${title} » ajouté à ta liste`);
+  });
+
+  // ===== TMDB =====
+  const IMG = "https://image.tmdb.org/t/p/";
+  const GENRES = {};
+  async function tmdb(path, params = {}) {
+    const u = new URL("https://api.themoviedb.org/3" + path);
+    u.searchParams.set("api_key", TMDB_KEY); u.searchParams.set("language", "fr-FR");
+    Object.entries(params).forEach(([k, v]) => u.searchParams.set(k, v));
+    const r = await fetch(u);
+    if (!r.ok) throw new Error("TMDB " + r.status);
+    return r.json();
+  }
+  const fromTmdb = m => ({
+    title: m.title, year: m.release_date ? +m.release_date.slice(0, 4) : "",
+    genres: (m.genre_ids || []).map(id => GENRES[id]).filter(Boolean),
+    synopsis: m.overview || "", img: m.poster_path ? IMG + "w500" + m.poster_path : "", tmdbId: m.id
+  });
+  async function enrichDemo() {
+    for (const f of films) {
+      if (f.img) continue;
+      try {
+        const d = await tmdb("/search/movie", { query: f.title, year: f.year || "" });
+        const m = d.results && d.results[0];
+        if (m) { const t = fromTmdb(m); f.img = t.img; f.tmdbId = t.tmdbId; if (t.genres.length) f.genres = t.genres; if (t.synopsis) f.synopsis = t.synopsis; }
+      } catch (e) { /* on garde l'affiche maison */ }
+    }
+    refreshGenres(); render();
+  }
+  let searchTimer, lastResults = [];
+  $("#tSearch").addEventListener("input", e => {
+    clearTimeout(searchTimer);
+    const q = e.target.value.trim(), box = $("#tResults");
+    if (q.length < 2) { box.innerHTML = ""; return; }
+    box.innerHTML = '<p class="res-msg">Recherche en cours…</p>';
+    searchTimer = setTimeout(async () => {
+      try {
+        const d = await tmdb("/search/movie", { query: q });
+        lastResults = (d.results || []).slice(0, 8);
+        if (!lastResults.length) { box.innerHTML = '<p class="res-msg">Aucun film trouvé. Essaie un autre titre, ou ajoute-le à la main.</p>'; return; }
+        box.innerHTML = lastResults.map((m, i) => {
+          const owned = films.some(f => f.tmdbId === m.id);
+          return `<button type="button" class="result" data-i="${i}" ${owned ? "disabled" : ""}>
+            ${m.poster_path ? `<img src="${IMG}w92${m.poster_path}" alt="" loading="lazy">` : '<span class="noimg"></span>'}
+            <span><b>${esc(m.title)}${m.release_date ? " (" + m.release_date.slice(0, 4) + ")" : ""}</b><small>${owned ? "Déjà dans ta liste" : esc(m.overview || "Pas de synopsis")}</small></span>
+          </button>`;
+        }).join("");
+      } catch (err) {
+        box.innerHTML = '<p class="res-msg">TMDB n\'a pas répondu. Vérifie ta clé en haut du script, puis réessaie.</p>';
+      }
+    }, 350);
+  });
+  $("#tResults").addEventListener("click", e => {
+    const b = e.target.closest(".result"); if (!b || b.disabled) return;
+    const t = fromTmdb(lastResults[+b.dataset.i]);
+    const f = film(t.title, t.year, t.genres, t.synopsis, { img: t.img, tmdbId: t.tmdbId }, t.tmdbId % PALETTES.length);
+    f.added = Math.max(...films.map(x => x.added), 0) + 1;
+    films.push(f); addDlg.close(); refreshGenres(); render(); toast(`« ${t.title} » ajouté à ta liste`);
+  });
+  if (HAS_KEY) {
+    tmdb("/genre/movie/list").then(d => d.genres.forEach(g => GENRES[g.id] = g.name)).catch(() => {}).finally(enrichDemo);
+  } else {
+    $("#tmdbBox").hidden = true;
+    $("#addHint").textContent = "La recherche automatique s'activera dès que ta clé TMDB sera ajoutée dans le fichier.";
+  }
+
+  // Film au hasard
+  const drawDlg = $("#drawDlg"), draw = $("#draw");
+  $("#randomBtn").addEventListener("click", () => {
+    let pool = visible().filter(f => f.status === "a-voir");
+    if (!pool.length) pool = films.filter(f => f.status === "a-voir");
+    if (!pool.length) { toast("Plus aucun film à voir. Ajoutes-en un !"); return; }
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    draw.innerHTML = `<span class="kicker">Séance mystère · ce soir à l'affiche</span><div class="reel" id="reel"></div><div id="reveal"></div>`;
+    drawDlg.showModal();
+    const reel = $("#reel");
+    const finish = () => {
+      reel.textContent = pick.title;
+      $("#reveal").innerHTML = `${posterHTML(pick, false)}<div class="row" style="justify-content:center;margin-top:16px"><button class="btn" type="button" id="again">Relancer</button><button class="btn primary" type="button" id="go">Voir la fiche</button></div>`;
+    };
+    if (reduce || pool.length === 1) return finish();
+    let n = 0, delay = 60;
+    (function spin() {
+      reel.textContent = pool[n++ % pool.length].title;
+      delay *= 1.14;
+      if (delay < 320) setTimeout(spin, delay); else finish();
+    })();
+  });
+  drawDlg.addEventListener("click", e => {
+    if (e.target === drawDlg) return drawDlg.close();
+    if (e.target.id === "again") { drawDlg.close(); $("#randomBtn").click(); }
+    if (e.target.id === "go") {
+      const t = $("#reel").textContent; drawDlg.close();
+      const f = films.find(x => x.title === t); if (f) openSheet(f.id);
+    }
+  });
+
+  // Filtres
+  document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
+    state.status = b.dataset.status;
+    document.querySelectorAll(".seg button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    render();
+  }));
+  $("#q").addEventListener("input", e => { state.q = e.target.value; render(); });
+  $("#genre").addEventListener("change", e => { state.genre = e.target.value; render(); });
+  $("#note").addEventListener("change", e => { state.note = +e.target.value; render(); });
+  $("#sort").addEventListener("change", e => { state.sort = e.target.value; render(); });
+
+  let tt;
+  function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("show"), 2400); }
+
+  // Intro : compte à rebours puis transition au choix
+  const LEADER_HTML = $("#leader").outerHTML;
+  const pageParts = document.querySelectorAll(".demo-note, header.marquee, .toolbar, main, footer");
+  let introTimers = [];
+  const later = (f, ms) => introTimers.push(setTimeout(f, ms));
+  const reveal = () => pageParts.forEach(el => el.classList.remove("intro-hide", "intro-below"));
+
+  function playIntro(v) {
+    introTimers.forEach(clearTimeout); introTimers = [];
+    const old = $("#leader"); if (old) old.remove();
+    if (reduce) { reveal(); return; }
+    document.body.insertAdjacentHTML("afterbegin", LEADER_HTML);
+    const L = $("#leader");
+    pageParts.forEach(el => { el.classList.add("intro-reveal", "intro-hide"); if (v === "reel") el.classList.add("intro-below"); });
+    later(() => $("#ldNum", L).textContent = "2", 1000);
+    later(() => $("#ldNum", L).textContent = "1", 2000);
+    later(() => finishIntro(L, v), 2900);
+    L.addEventListener("click", () => finishIntro(L, v));
+  }
+
+  function finishIntro(L, v) {
+    if (L.dataset.ending) return; L.dataset.ending = "1";
+    if (v === "light") { L.classList.add("v-light"); later(reveal, 650); later(() => L.remove(), 1800); }
+    else if (v === "reel") { L.classList.add("v-reel"); later(reveal, 250); later(() => L.remove(), 1350); }
+    else { L.classList.add("v-burn"); reveal(); burn(L); }
+  }
+
+  function burn(L) {
+    const W = 140, H = Math.max(40, Math.round(W * innerHeight / innerWidth));
+    const G = 9, grid = Array.from({ length: (G + 2) * (G + 2) }, Math.random);
+    const g = (x, y) => grid[y * (G + 2) + x];
+    const noise = (u, v) => {
+      const x = u * G, y = v * G, xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi;
+      const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+      const a = g(xi, yi) + (g(xi + 1, yi) - g(xi, yi)) * sx, b = g(xi, yi + 1) + (g(xi + 1, yi + 1) - g(xi, yi + 1)) * sx;
+      return a + (b - a) * sy;
+    };
+    const field = new Float32Array(W * H); let mn = 9, mx = -9;
+    const ar = H / W, maxD = Math.hypot(.5, .5 * ar);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const u = x / W, v = y / H;
+      const d = Math.hypot(u - .47, (v - .53) * ar) / maxD;
+      const n = noise(u, v) * .7 + noise((u * 2.3) % 1, (v * 2.3) % 1) * .3;
+      const f = d * .62 + n * .38; field[y * W + x] = f; if (f < mn) mn = f; if (f > mx) mx = f;
+    }
+    for (let i = 0; i < field.length; i++) field[i] = (field[i] - mn) / (mx - mn);
+    const edge = document.createElement("canvas"); edge.width = W; edge.height = H; edge.className = "ld-burn"; L.appendChild(edge);
+    const mask = document.createElement("canvas"); mask.width = W; mask.height = H;
+    const ec = edge.getContext("2d"), mc = mask.getContext("2d");
+    const eImg = ec.createImageData(W, H), mImg = mc.createImageData(W, H);
+    const start = performance.now(), dur = 1500;
+    (function frame(now) {
+      if (!L.isConnected) return;
+      const p = Math.min(1, (now - start) / dur), e = p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+      const t = -.12 + 1.28 * e;
+      for (let i = 0; i < field.length; i++) {
+        const k = field[i] - t, o = i * 4; let r = 0, gg = 0, b = 0, a = 0, m = 255;
+        if (k < 0) m = 0;
+        else if (k < .018) { r = 255; gg = 244; b = 200; a = 255; }
+        else if (k < .045) { r = 255; gg = 150; b = 40; a = 245; }
+        else if (k < .08) { r = 120; gg = 40; b = 10; a = 230; }
+        else if (k < .13) { r = 28; gg = 12; b = 5; a = 150; }
+        eImg.data[o] = r; eImg.data[o + 1] = gg; eImg.data[o + 2] = b; eImg.data[o + 3] = a;
+        mImg.data[o + 3] = m;
+      }
+      ec.putImageData(eImg, 0, 0); mc.putImageData(mImg, 0, 0);
+      const url = `url(${mask.toDataURL()})`;
+      L.style.webkitMaskImage = url; L.style.maskImage = url;
+      if (p < 1) requestAnimationFrame(frame); else L.remove();
+    })(start);
+  }
+
+  playIntro("reel");
+
+  refreshGenres(); render();
+})();
+</script>
+</body>
+</html>
